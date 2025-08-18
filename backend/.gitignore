@@ -1,0 +1,15 @@
+
+# dependencies
+/node_modules
+
+
+# production
+/build
+
+
+.env*
+
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
