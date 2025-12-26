@@ -1,0 +1,194 @@
+import { Request, Response } from "express";
+import bcrypt from "bcryptjs";
+import prisma from "../../prisma/client";
+import { generateStoreCode } from "../utils/generateStoreCode";
+import { generateToken } from "../utils/generateJWT";
+
+
+//create-store
+export const createStore = async (req: Request, res: Response) => {
+  try {
+    const { storeName, adminName, email, password } = req.body;
+
+    if (!storeName || !adminName || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const existingAdmin = await prisma.user.findFirst({
+        where : {email}
+    })
+
+    if (existingAdmin) {
+      return res.status(409).json({ message: "Email already in use" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const storeCode = generateStoreCode();
+
+    await prisma.store.create({
+        data: {
+            name : storeName,
+            code : storeCode,
+            users : {
+                create: {
+                    name : adminName,
+                    email,
+                    password : hashedPassword,
+                    role: "ADMIN"
+                },
+            },
+        }
+    })
+
+    return res.status(201).json({
+      message: "Store created successfully"
+    });
+  } 
+  catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+
+//join-store
+export const joinStore = async (req: Request, res: Response) => {
+  try {
+    const { storeCode, name, email, password, role } = req.body;
+
+    if (!storeCode || !name || !email || !password || !role) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const store = await prisma.store.findUnique({
+        where:{ code: storeCode},
+    })
+
+    if (!store) {
+      return res.status(404).json({ message: "Invalid store code" });
+    }
+
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        email,
+        storeId: store.id,
+      },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ message: "Email already exists in store" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role,
+        storeId: store.id,
+      },
+    });
+
+    return res.status(201).json({
+      message: "User joined store successfully",
+    });
+  } 
+  catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+//login
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { storeCode, email, password } = req.body;
+
+    if (!storeCode || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const store = await prisma.store.findUnique({
+        where: {code : storeCode},
+    })
+
+    if (!store) {
+      return res.status(404).json({ message: "Invalid store code" });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        email,
+        storeId: store.id,
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+
+    const token = generateToken({
+        userId: user.id,
+        role: user.role,
+        storeId: store.id,
+    });
+
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "none",
+        maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      token,
+      role: user.role,
+    });
+  } 
+  catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+//me
+import { AuthRequest } from "../middlewares/auth.middleware";
+
+export const me = async (req: AuthRequest, res: Response) => {
+  
+    const user = await prisma.user.findUnique({
+        where: { id: req.user!.userId },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            storeId: true,
+        },
+    });
+
+  return res.status(200).json(user);
+};
+
+
+
+//logout
+export const logout = (_req: Request, res: Response) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "none",
+    maxAge: 0,
+  });
+
+  return res.status(200).json({ message: "Logged out successfully" });
+};
