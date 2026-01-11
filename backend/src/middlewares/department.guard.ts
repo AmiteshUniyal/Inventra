@@ -8,58 +8,59 @@ export const departmentGuard = async (
   next: NextFunction
 ) => {
   try {
-    const { role, userId, storeId } = req.user!;
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized: User context missing" });
+    }
+
+    const role = req.user.role;
+    const storeId = req.user.storeId;
+    const userDeptId = req.user.departmentId;
 
     if (role === "ADMIN") return next();
 
-    let departmentId: string | null = req.body.departmentId || null;
+    let targetDeptId: string | null = null;
 
+    const paramId = req.params.id;
 
-    if (!departmentId && req.params.id) {
-      const product = await prisma.product.findUnique({
-        where: { id: req.params.id },
-        select: {
-          departmentId: true,
-          department: { select: { storeId: true } },
-        },
-      });
+    if (paramId) {
+      if (req.originalUrl.includes('/department/')) {
+        targetDeptId = paramId;
+      } 
+      else {
+        const product = await prisma.product.findUnique({
+          where: { id: paramId },
+          select: { departmentId: true, department: { select: { storeId: true } } },
+        });
 
-      if (!product || product.department.storeId !== storeId) {
-        return res.status(403).json({ message: "Access denied" });
+        if (!product) {
+          return res.status(404).json({ message: "Product not found" });
+        }
+
+        if (product.department.storeId !== storeId) {
+          return res.status(403).json({ message: "Access denied: Product belongs to another store" });
+        }
+
+        targetDeptId = product.departmentId;
       }
-
-      departmentId = product.departmentId;
+    } 
+    else if (req.body.departmentId) {
+      targetDeptId = req.body.departmentId;
+    }
+    if (!targetDeptId) {
+      return res.status(400).json({ message: "Department context could not be determined" });
     }
 
-    if (!departmentId) {
-      return res.status(400).json({ message: "Department missing" });
-    }
-
-    if (role === "MANAGER") {
-      const department = await prisma.department.findUnique({
-        where: { id: departmentId },
-        select: { managerId: true }
+    if (!userDeptId || userDeptId !== targetDeptId) {
+      return res.status(403).json({ 
+        message: "Access Denied: You do not have permission for this department" 
       });
-
-      if (!department || department.managerId !== userId) {
-        return res.status(403).json({ message: "Not your department" });
-      }
-    }
-
-    if (role === "STAFF") {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { departmentId: true },
-      });
-
-      if (!user || user.departmentId !== departmentId) {
-        return res.status(403).json({ message: "Not your department" });
-      }
     }
 
     next();
-  } 
-  catch {
-    return res.status(500).json({ message: "DepartmentGuard failed" });
+  } catch (error: any) {
+    console.error("CRITICAL GUARD ERROR:", error.message || error);
+    return res.status(500).json({ 
+      message: "Internal Server Error in Security Guard",
+    });
   }
 };

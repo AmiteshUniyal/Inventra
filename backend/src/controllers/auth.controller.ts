@@ -10,10 +10,6 @@ export const createStore = async (req: Request, res: Response) => {
   try {
     const { storeName, adminName, email, password } = req.body;
 
-    if (!storeName || !adminName || !email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
     const existingAdmin = await prisma.user.findFirst({
         where : {email}
     })
@@ -57,27 +53,13 @@ export const joinStore = async (req: Request, res: Response) => {
   try {
     const { storeCode, name, email, password, role } = req.body;
 
-    if (!storeCode || !name || !email || !password || !role) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
     const store = await prisma.store.findUnique({
         where:{ code: storeCode},
+        select:{ id: true},
     })
 
     if (!store) {
       return res.status(404).json({ message: "Invalid store code" });
-    }
-
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        email,
-        storeId: store.id,
-      },
-    });
-
-    if (existingUser) {
-      return res.status(409).json({ message: "Email already exists in store" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -96,8 +78,13 @@ export const joinStore = async (req: Request, res: Response) => {
       message: "User joined store successfully",
     });
   } 
-  catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
+  catch (error: any) {
+    
+    if (error.code === "P2002") {
+      return res.status(409).json({message: "Email already exists in store"});
+    }
+
+    return res.status(500).json({ message: "Internal server error"});
   }
 };
 
@@ -107,44 +94,35 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { storeCode, email, password } = req.body;
 
-    if (!storeCode || !email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    const store = await prisma.store.findUnique({
-        where: {code : storeCode},
-    })
-
-    if (!store) {
-      return res.status(404).json({ message: "Invalid store code" });
-    }
-
     const user = await prisma.user.findFirst({
       where: {
         email,
-        storeId: store.id,
+        store: { code: storeCode },
       },
+      select: {
+        id: true,
+        role: true,
+        storeId: true,
+        password: true,
+        departmentId: true, 
+      }
     });
 
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
+    if (!isPasswordValid) return res.status(401).json({ message: "Invalid credentials" });
 
     const token = generateToken({
         userId: user.id,
         role: user.role,
-        storeId: store.id,
+        storeId: user.storeId,
+        departmentId: user.departmentId, 
     });
 
     res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: true,
         sameSite: "none",
         maxAge: 24 * 60 * 60 * 1000,
     });
@@ -152,9 +130,9 @@ export const login = async (req: Request, res: Response) => {
     return res.status(200).json({
       token,
       role: user.role,
+      departmentId: user.departmentId,
     });
-  } 
-  catch (error) {
+  } catch (error) {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -164,31 +142,39 @@ export const login = async (req: Request, res: Response) => {
 import { AuthRequest } from "../middlewares/auth.middleware";
 
 export const me = async (req: AuthRequest, res: Response) => {
-  
+  try {
     const user = await prisma.user.findUnique({
-        where: { id: req.user!.userId },
-        select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-            storeId: true,
-        },
+      where: { id: req.user!.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        storeId: true,
+        departmentId: true, 
+      },
     });
 
-  return res.status(200).json(user);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json(user);
+  } catch{
+    return res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 
 
 //logout
-export const logout = (_req: Request, res: Response) => {
-  res.clearCookie("token", {
+export const logout = async (req: Request, res: Response) => {
+  res.cookie("token", "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     sameSite: "none",
-    maxAge: 0,
+    expires: new Date(0),
   });
 
-  return res.status(200).json({ message: "Logged out successfully" });
+  return res.status(200).json({ message: "Logged out" });
 };
