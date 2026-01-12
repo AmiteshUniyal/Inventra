@@ -7,9 +7,6 @@
     "dev": "ts-node-dev --respawn src/server.ts",
     "start": "node server.js"
   },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
-  },
   "author": "",
   "license": "ISC",
   "description": "",
