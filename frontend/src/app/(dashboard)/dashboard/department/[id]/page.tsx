@@ -54,9 +54,9 @@ export default function DepartmentDashboard() {
   }
 
   const chartData = [
-    { name: "In Stock", value: data.inStock },
-    { name: "Low Stock", value: data.lowStock || 0 },
-    { name: "Out of Stock", value: data.outOfStock },
+    { name: "In Stock", value: data?.inStock || 0 },
+    { name: "Low Stock", value: data?.lowStock || 0 },
+    { name: "Out of Stock", value: data?.outOfStock || 0 },
   ].filter(v => v.value > 0);
 
   return (
@@ -169,7 +169,20 @@ export default function DepartmentDashboard() {
   );
 }
 
-function StatCard({ title, value, icon, subtitle }: any) {
+interface StatCardProps {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  subtitle: string;
+}
+interface StatusRowProps {
+  label: string;
+  value: number;
+  color: string;
+  bg: string;
+}
+
+function StatCard({ title, value, icon, subtitle }: StatCardProps) {
   return (
     <div className="bg-[#333d4d] p-7 rounded-[2rem] border border-white/5 shadow-lg group hover:bg-[#3d4858] transition-all cursor-default">
       <div className="flex justify-between items-start">
@@ -186,7 +199,7 @@ function StatCard({ title, value, icon, subtitle }: any) {
   );
 }
 
-function StatusRow({ label, value, color, bg }: any) {
+function StatusRow({ label, value, color, bg }: StatusRowProps) {
   return (
     <div className={`flex items-center justify-between p-5 rounded-2xl border border-white/5 ${bg} transition-hover hover:border-white/10`}>
       <span className={`font-bold tracking-tight ${color}`}>{label}</span>

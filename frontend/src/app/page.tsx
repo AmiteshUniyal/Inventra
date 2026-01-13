@@ -5,7 +5,7 @@ import { useMeQuery } from "@/services/authAPI";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Button from "@/components/UI/button";
-import { Package, ShieldCheck, Zap, ArrowRight } from "lucide-react";
+import { Package, ShieldCheck, Zap } from "lucide-react";
 
 export default function LandingPage() {
   const router = useRouter();

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { clearUser } from "@/store/authSlice";
@@ -28,7 +28,6 @@ interface SidebarContentProps {
 
 export default function SidebarContent({ closeMobile }: SidebarContentProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
 

@@ -1,42 +1,57 @@
 import { baseApi } from "./baseAPI";
 
+export type UserRole = "ADMIN" | "MANAGER" | "STAFF";
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  departmentId?: string;
+  department?: {
+    name: string;
+  };
+}
+export interface GroupedUsers {
+  [deptName: string]: User[];
+}
+
 export const userApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-
-    getUsers: builder.query({
+    getUsers: builder.query<User[], void>({
       query: () => "/users",
       providesTags: ["Users"],
     }),
 
-    getDepartmentUsers: builder.query({
+    getDepartmentUsers: builder.query<User[], void>({
       query: () => "/users",
       providesTags: ["Users"],
     }),
 
-    createUsers: builder.mutation({
+    createUsers: builder.mutation<User, Partial<User>>({
       query: (data) => ({
         url: "/users",
         method: "POST",
         body: data,
       }),
-      invalidatesTags: ["Users"],
+      invalidatesTags: ["Users", "Departments"],
     }),
 
-    updateUser: builder.mutation({
+    updateUser: builder.mutation<User, { id: string } & Partial<User>>({
       query: ({ id, ...data }) => ({
         url: `/users/${id}`,
         method: "PUT",
         body: data,
       }),
-      invalidatesTags: ["Users"],
+      invalidatesTags: ["Users", "Departments", "Dashboard"],
     }),
 
-    deleteUser: builder.mutation({
+    deleteUser: builder.mutation<{ success: boolean }, string>({
       query: (id: string) => ({
         url: `/users/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Users"],
+      invalidatesTags: ["Users", "Departments"],
     }),
   }),
 });

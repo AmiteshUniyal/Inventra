@@ -7,12 +7,14 @@ import {
   useGetProductsQuery, 
   useDeleteProductMutation,
   useUpdateProductMutation,
-  useCreateProductMutation 
+  useCreateProductMutation,
+  Product,
+  StockStatus,
 } from "@/services/productAPI";
 import RoleGuard from "@/components/RoleGuard";
 import { 
-  Package, Search, Filter, Plus, Trash2, Edit3, 
-  AlertCircle, CheckCircle2, XCircle, ArrowRightLeft, X, ChevronLeft, ChevronRight
+  Package, Search, Plus, Trash2, Edit3, 
+  AlertCircle, CheckCircle2, XCircle, X, ChevronLeft, ChevronRight
 } from "lucide-react";
 
 export default function ProductsPage() {
@@ -21,21 +23,23 @@ export default function ProductsPage() {
   const [status, setStatus] = useState<string | undefined>();
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const { data, isLoading, isError } = useGetProductsQuery({ page, status });
   const [deleteProduct] = useDeleteProductMutation();
   const [updateProduct] = useUpdateProductMutation();
   const [createProduct] = useCreateProductMutation();
+  const { data, isLoading, isError } = useGetProductsQuery({ page, status });
 
+  const totalPages = data?.totalPages ?? 1;
+  const currentPage = data?.currentPage ?? 1;
+  const products = data?.items ?? [];
+  
   const isAdmin = user?.role === "ADMIN";
 
   if (isLoading) return <div className="p-10 text-white animate-pulse font-black text-center uppercase tracking-widest">Scanning Inventory Vault...</div>;
   if (isError) return <div className="p-10 text-red-500 text-center font-bold">Failed to sync with Inventory Server.</div>;
 
-  const products = data?.items || [];
-
-  const filteredProducts = products.filter((p: any) => 
+  const filteredProducts = products.filter((p) => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     p.productCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -105,7 +109,7 @@ export default function ProductsPage() {
           value={status ?? ""}
           onChange={(e) => {
             setStatus(e.target.value || undefined);
-            setPage(1); // Reset to page 1 on filter change
+            setPage(1);
           }}
         >
           <option value="">All Status</option>
@@ -115,10 +119,9 @@ export default function ProductsPage() {
         </select>
       </div>
 
-      {/* 3. Responsive List View */}
       {/* Mobile Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
-        {filteredProducts.map((product: any) => (
+        {filteredProducts.map((product) => (
           <div key={product.id} className="bg-[#333d4d] p-5 rounded-2xl border border-white/5 space-y-4">
             <div className="flex justify-between">
               <div className="flex items-center gap-3">
@@ -156,7 +159,7 @@ export default function ProductsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {filteredProducts.map((product: any) => (
+            {filteredProducts.map((product) => (
               <tr key={product.id} className="hover:bg-white/[0.02] transition-colors group">
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-4 min-w-0">
@@ -186,7 +189,7 @@ export default function ProductsPage() {
         <div className="flex flex-col items-center sm:items-start">
           <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Navigation Control</span>
           <div className="text-xs font-black text-white uppercase tracking-tighter">
-            Page <span className="text-blue-500">{data.currentPage}</span> of {data.totalPages}
+            Page <span className="text-blue-500">{currentPage}</span> of {totalPages}
           </div>
         </div>
         
@@ -200,7 +203,7 @@ export default function ProductsPage() {
             Prev
           </button>
           <button
-            disabled={page >= data.totalPages}
+            disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-white/5 border border-white/5 rounded-xl text-[10px] font-black text-white uppercase tracking-widest disabled:opacity-20 disabled:cursor-not-allowed hover:bg-white/10 transition-all active:scale-95"
           >
@@ -254,13 +257,20 @@ export default function ProductsPage() {
   );
 }
 
-function StockBadge({ status }: { status: string }) {
-  const configs: any = {
+interface StockConfig {
+  bg: string;
+  icon: React.ReactNode;
+}
+
+function StockBadge({ status }: { status: StockStatus }) {
+  const configs: Record<StockStatus, StockConfig> = {
     IN_STOCK: { bg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: <CheckCircle2 size={12}/> },
     LOW_STOCK: { bg: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: <AlertCircle size={12}/> },
     OUT_OF_STOCK: { bg: "bg-red-500/10 text-red-400 border-red-500/20", icon: <XCircle size={12}/> },
   };
-  const config = configs[status] || configs.OUT_OF_STOCK;
+
+  const config = configs[status];
+  
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase border ${config.bg}`}>
       {config.icon}

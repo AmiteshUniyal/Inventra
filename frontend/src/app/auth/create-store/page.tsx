@@ -8,6 +8,12 @@ import Button from "@/components/UI/button";
 import AuthCard from "@/components/UI/AuthCard";
 import { Lock, Mail, Store, User, Loader2, ArrowLeft } from "lucide-react";
 
+interface ApiError {
+  data?: {
+    message?: string;
+  };
+}
+
 export default function CreateStorePage() {
   const router = useRouter();
 
@@ -117,7 +123,7 @@ export default function CreateStorePage() {
           {isError && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg py-2 text-center">
               <p className="text-xs text-red-400 font-medium">
-                {(error as any)?.data?.message || "Failed to create store."}
+                {(error as ApiError)?.data?.message || "Failed to create store."}
               </p>
             </div>
           )}

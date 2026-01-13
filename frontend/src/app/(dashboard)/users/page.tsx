@@ -9,10 +9,12 @@ import {
   useDeleteUserMutation,
   useCreateUsersMutation,
   useUpdateUserMutation,
+  User,
+  GroupedUsers,
 } from "@/services/userAPI";
 import RoleGuard from "@/components/RoleGuard";
 import {
-  UserPlus, Mail, Trash2, Edit, Building2, Users as UsersIcon, Crown, X
+  UserPlus, Mail, Trash2, Edit, Building2, Crown, X
 } from "lucide-react";
 
 export default function UsersPage() {
@@ -21,8 +23,8 @@ export default function UsersPage() {
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<any>(null);
-
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  
   // API Hooks
   const adminQuery = useGetUsersQuery(undefined, { skip: !isAdmin });
   const managerQuery = useGetDepartmentUsersQuery(undefined, { skip: isAdmin });
@@ -34,13 +36,13 @@ export default function UsersPage() {
 
   if (isLoading) return <div className="flex items-center justify-center h-screen animate-pulse text-gray-400 font-black uppercase tracking-widest">Loading...</div>;
 
-  const groupUsersByDepartment = () => {
+  const groupUsersByDepartment = (): GroupedUsers => {
     if (!users) return {};
-    return users.reduce((acc: any, curr: any) => {
+    return users.reduce((acc: GroupedUsers, curr: User) => {
       
       if (curr.role === "ADMIN") return acc;
       
-      const deptName = curr.department?.name;
+      const deptName = curr.department?.name || "Unassigned Sector";
       
       if (!acc[deptName]) {
         acc[deptName] = [];
@@ -96,8 +98,8 @@ export default function UsersPage() {
       <main className="max-w-7xl mx-auto p-4 md:p-6 space-y-16">
         {Object.keys(departments).map((deptName) => {
           const deptUsers = departments[deptName];
-          const manager = deptUsers.find((u: any) => u.role === "MANAGER");
-          const staffMembers = deptUsers.filter((u: any) => u.role === "STAFF");
+          const manager = deptUsers.find((u) => u.role === "MANAGER");
+          const staffMembers = deptUsers.filter((u) => u.role === "STAFF");
 
           return (
             <section key={deptName} className="space-y-6">
@@ -128,7 +130,7 @@ export default function UsersPage() {
 
                 {/* Staff Cards */}
                 <div className="flex-1 flex flex-wrap gap-4">
-                  {staffMembers.map((s: any) => (
+                  {staffMembers.map((s) => (
                     <div key={s.id} className="min-w-[280px] flex-1 bg-gray-900/50 border border-white/5 rounded-[2rem] p-6 group hover:border-blue-500/30 transition-all">
                       <div className="flex justify-between items-start mb-4">
                         <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold border border-blue-500/20">{s.name.charAt(0)}</div>

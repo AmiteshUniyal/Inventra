@@ -5,7 +5,9 @@ import {
   useGetDepartmentsQuery, 
   useCreateDepartmentMutation, 
   useUpdateDepartmentMutation, 
-  useDeleteDepartmentMutation 
+  useDeleteDepartmentMutation,
+  Department,
+  USER,
 } from "@/services/departmentAPI";
 import { useGetUsersQuery } from "@/services/userAPI"; 
 import { LayoutGrid, Plus, Edit3, Trash2, X, User, Package, Fingerprint, Copy } from "lucide-react";
@@ -15,14 +17,14 @@ export default function DepartmentsPage() {
   const { data: users } = useGetUsersQuery(undefined);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedDept, setSelectedDept] = useState<any>(null);
-  
+  const [selectedDept, setSelectedDept] = useState<Department | null>(null);
+
   const [createDept] = useCreateDepartmentMutation();
   const [updateDept] = useUpdateDepartmentMutation();
   const [deleteDept] = useDeleteDepartmentMutation();
 
   // Filter users to only show potential MANAGERS
-  const potentialManagers = users?.filter((u: any) => u.role === "MANAGER") || [];
+  const potentialManagers = users?.filter((u: USER) => u.role === "MANAGER") || [];
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -71,7 +73,7 @@ export default function DepartmentsPage() {
 
       {/* Department Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {depts?.map((dept: any) => (
+        {depts?.map((dept: Department) => (
           <div key={dept.id} className="bg-[#333d4d] border border-white/5 p-8 rounded-[2.5rem] group hover:border-blue-500/30 transition-all relative overflow-hidden flex flex-col">
             
             {/* Action Buttons */}
@@ -175,7 +177,7 @@ export default function DepartmentsPage() {
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500 appearance-none cursor-pointer"
                     >
                       <option value="" disabled className="bg-[#1e293b]">Choose a manager</option>
-                      {potentialManagers.map((m: any) => (
+                      {potentialManagers.map((m: USER) => (
                         <option key={m.id} value={m.id} className="bg-[#1e293b] text-white">
                           {m.name}
                         </option>

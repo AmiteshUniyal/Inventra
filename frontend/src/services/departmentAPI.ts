@@ -1,14 +1,37 @@
 import { baseApi } from "./baseAPI";
 
+export interface USER {
+  id: string;
+  name: string;
+  role: "ADMIN" | "MANAGER" | "USER";
+  departmentId?: string;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  managerId: string;
+  manager?: {
+    name: string;
+  };
+  _count?: {
+    products: number;
+  };
+}
+
+export interface CreateDepartmentPayload {
+  name: string;
+  managerId: string;
+}
+
 export const departmentApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-
-    getDepartments: builder.query({
+    getDepartments: builder.query<Department[], void>({
       query: () => "/departments",
       providesTags: ["Departments"],
     }),
 
-    createDepartment: builder.mutation({
+    createDepartment: builder.mutation<Department, CreateDepartmentPayload>({
       query: (data) => ({
         url: "/departments",
         method: "POST",
@@ -17,7 +40,7 @@ export const departmentApi = baseApi.injectEndpoints({
       invalidatesTags: ["Departments"],
     }),
 
-    updateDepartment: builder.mutation({
+    updateDepartment: builder.mutation<Department, { id: string } & CreateDepartmentPayload>({
       query: ({ id, ...data }) => ({
         url: `/departments/${id}`,
         method: "PUT",
@@ -26,7 +49,7 @@ export const departmentApi = baseApi.injectEndpoints({
       invalidatesTags: ["Departments"],
     }),
 
-    deleteDepartment: builder.mutation({
+    deleteDepartment: builder.mutation<{ success: boolean }, string>({
       query: (id: string) => ({
         url: `/departments/${id}`,
         method: "DELETE",

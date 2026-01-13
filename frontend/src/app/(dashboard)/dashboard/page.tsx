@@ -9,13 +9,12 @@ import { Search, ArrowUpDown, AlertTriangle, ExternalLink } from "lucide-react";
 const COLORS = ["#10b981", "#f59e0b", "#ef4444"]; 
 
 export default function DashboardPage() {
-  const { data, isLoading, isError } = useGetOverviewQuery(undefined);
-  const [searchTerm, setSearchTerm] = useState("");
+  const { data = { summary: { totalProducts: 0 }, departments: [] }, isLoading, isError } = useGetOverviewQuery(undefined);  const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
 
   const filteredDepartments = useMemo(() => {
     if (!data?.departments) return [];
-    let filtered = data.departments.filter((dept: any) =>
+    const filtered = data.departments.filter((dept) => 
       dept.departmentName.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -80,7 +79,7 @@ export default function DashboardPage() {
       {/* Departments */}
       <main className="max-w-7xl mx-auto p-4 md:p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredDepartments.map((dept: any) => {
+          {filteredDepartments.map((dept) => {
             const chartData = [
               { name: "In Stock", value: dept.stats.inStock },
               { name: "Low", value: dept.stats.lowStock },
