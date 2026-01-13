@@ -7,7 +7,6 @@ import {
   useUpdateDepartmentMutation, 
   useDeleteDepartmentMutation,
   Department,
-  USER,
 } from "@/services/departmentAPI";
 import { useGetUsersQuery } from "@/services/userAPI"; 
 import { LayoutGrid, Plus, Edit3, Trash2, X, User, Package, Fingerprint, Copy } from "lucide-react";
@@ -24,7 +23,7 @@ export default function DepartmentsPage() {
   const [deleteDept] = useDeleteDepartmentMutation();
 
   // Filter users to only show potential MANAGERS
-  const potentialManagers = users?.filter((u: USER) => u.role === "MANAGER") || [];
+  const potentialManagers = users?.filter((u) => u.role === "MANAGER") || [];
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -177,7 +176,7 @@ export default function DepartmentsPage() {
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500 appearance-none cursor-pointer"
                     >
                       <option value="" disabled className="bg-[#1e293b]">Choose a manager</option>
-                      {potentialManagers.map((m: USER) => (
+                      {potentialManagers.map((m) => (
                         <option key={m.id} value={m.id} className="bg-[#1e293b] text-white">
                           {m.name}
                         </option>

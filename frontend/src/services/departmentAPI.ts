@@ -1,12 +1,5 @@
 import { baseApi } from "./baseAPI";
 
-export interface USER {
-  id: string;
-  name: string;
-  role: "ADMIN" | "MANAGER" | "USER";
-  departmentId?: string;
-}
-
 export interface Department {
   id: string;
   name: string;
