@@ -2,11 +2,11 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
-import authRoutes from "../src/routes/auth.routes";
-import userRoutes from "../src/routes/users.routes";
-import departmentRoutes from "../src/routes/departments.routes";
-import productRoutes from "../src/routes/products.routes"
-import dashboardRoutes from "../src/routes/dashboard.routes"
+import authRoutes from "./routes/auth.routes.js";
+import userRoutes from "./routes/users.routes.js";
+import departmentRoutes from "./routes/departments.routes.js";
+import productRoutes from "./routes/products.routes.js"
+import dashboardRoutes from "./routes/dashboard.routes.js"
 
 
 dotenv.config();
