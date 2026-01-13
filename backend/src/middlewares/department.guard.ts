@@ -1,5 +1,5 @@
 import { Response, NextFunction } from "express";
-import prisma from "../../prisma/client";
+import prisma from "../utils/prismaClient";
 import { AuthRequest } from "./auth.middleware";
 
 export const departmentGuard = async (
@@ -9,7 +9,9 @@ export const departmentGuard = async (
 ) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized: User context missing" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: User context missing" });
     }
 
     const role = req.user.role;
@@ -23,13 +25,15 @@ export const departmentGuard = async (
     const paramId = req.params.id;
 
     if (paramId) {
-      if (req.originalUrl.includes('/department/')) {
+      if (req.originalUrl.includes("/department/")) {
         targetDeptId = paramId;
-      } 
-      else {
+      } else {
         const product = await prisma.product.findUnique({
           where: { id: paramId },
-          select: { departmentId: true, department: { select: { storeId: true } } },
+          select: {
+            departmentId: true,
+            department: { select: { storeId: true } },
+          },
         });
 
         if (!product) {
@@ -37,29 +41,33 @@ export const departmentGuard = async (
         }
 
         if (product.department.storeId !== storeId) {
-          return res.status(403).json({ message: "Access denied: Product belongs to another store" });
+          return res.status(403).json({
+            message: "Access denied: Product belongs to another store",
+          });
         }
 
         targetDeptId = product.departmentId;
       }
-    } 
-    else if (req.body.departmentId) {
+    } else if (req.body.departmentId) {
       targetDeptId = req.body.departmentId;
     }
     if (!targetDeptId) {
-      return res.status(400).json({ message: "Department context could not be determined" });
+      return res
+        .status(400)
+        .json({ message: "Department context could not be determined" });
     }
 
     if (!userDeptId || userDeptId !== targetDeptId) {
-      return res.status(403).json({ 
-        message: "Access Denied: You do not have permission for this department" 
+      return res.status(403).json({
+        message:
+          "Access Denied: You do not have permission for this department",
       });
     }
 
     next();
   } catch (error: any) {
     console.error("CRITICAL GUARD ERROR:", error.message || error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: "Internal Server Error in Security Guard",
     });
   }

@@ -1,9 +1,8 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import prisma from "../../prisma/client";
+import prisma from "../utils/prismaClient";
 import { generateStoreCode } from "../utils/generateStoreCode";
 import { generateToken } from "../utils/generateJWT";
-
 
 //create-store
 export const createStore = async (req: Request, res: Response) => {
@@ -11,8 +10,8 @@ export const createStore = async (req: Request, res: Response) => {
     const { storeName, adminName, email, password } = req.body;
 
     const existingAdmin = await prisma.user.findFirst({
-        where : {email}
-    })
+      where: { email },
+    });
 
     if (existingAdmin) {
       return res.status(409).json({ message: "Email already in use" });
@@ -23,30 +22,27 @@ export const createStore = async (req: Request, res: Response) => {
     const storeCode = generateStoreCode();
 
     await prisma.store.create({
-        data: {
-            name : storeName,
-            code : storeCode,
-            users : {
-                create: {
-                    name : adminName,
-                    email,
-                    password : hashedPassword,
-                    role: "ADMIN"
-                },
-            },
-        }
-    })
+      data: {
+        name: storeName,
+        code: storeCode,
+        users: {
+          create: {
+            name: adminName,
+            email,
+            password: hashedPassword,
+            role: "ADMIN",
+          },
+        },
+      },
+    });
 
     return res.status(201).json({
-      message: "Store created successfully"
+      message: "Store created successfully",
     });
-  } 
-  catch (error) {
+  } catch (error) {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-
-
 
 //join-store
 export const joinStore = async (req: Request, res: Response) => {
@@ -54,9 +50,9 @@ export const joinStore = async (req: Request, res: Response) => {
     const { storeCode, name, email, password, role } = req.body;
 
     const store = await prisma.store.findUnique({
-        where:{ code: storeCode},
-        select:{ id: true},
-    })
+      where: { code: storeCode },
+      select: { id: true },
+    });
 
     if (!store) {
       return res.status(404).json({ message: "Invalid store code" });
@@ -77,17 +73,14 @@ export const joinStore = async (req: Request, res: Response) => {
     return res.status(201).json({
       message: "User joined store successfully",
     });
-  } 
-  catch (error: any) {
-    
+  } catch (error: any) {
     if (error.code === "P2002") {
-      return res.status(409).json({message: "Email already exists in store"});
+      return res.status(409).json({ message: "Email already exists in store" });
     }
 
-    return res.status(500).json({ message: "Internal server error"});
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 //login
 export const login = async (req: Request, res: Response) => {
@@ -104,27 +97,28 @@ export const login = async (req: Request, res: Response) => {
         role: true,
         storeId: true,
         password: true,
-        departmentId: true, 
-      }
+        departmentId: true,
+      },
     });
 
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) return res.status(401).json({ message: "Invalid credentials" });
+    if (!isPasswordValid)
+      return res.status(401).json({ message: "Invalid credentials" });
 
     const token = generateToken({
-        userId: user.id,
-        role: user.role,
-        storeId: user.storeId,
-        departmentId: user.departmentId, 
+      userId: user.id,
+      role: user.role,
+      storeId: user.storeId,
+      departmentId: user.departmentId,
     });
 
     res.cookie("token", token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     return res.status(200).json({
@@ -136,7 +130,6 @@ export const login = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 //me
 import { AuthRequest } from "../middlewares/auth.middleware";
@@ -151,7 +144,7 @@ export const me = async (req: AuthRequest, res: Response) => {
         email: true,
         role: true,
         storeId: true,
-        departmentId: true, 
+        departmentId: true,
       },
     });
 
@@ -160,12 +153,10 @@ export const me = async (req: AuthRequest, res: Response) => {
     }
 
     return res.status(200).json(user);
-  } catch{
+  } catch {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-
-
 
 //logout
 export const logout = async (req: Request, res: Response) => {

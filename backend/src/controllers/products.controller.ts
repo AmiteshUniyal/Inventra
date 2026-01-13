@@ -1,11 +1,11 @@
 import { Response } from "express";
-import prisma from "../../prisma/client";
+import prisma from "../utils/prismaClient";
 import { AuthRequest } from "../middlewares/auth.middleware";
 
 export const getProducts = async (req: AuthRequest, res: Response) => {
   try {
     const { storeId, role, departmentId } = req.user!;
-    
+
     const page = parseInt(req.query.page as string) || 1;
     const status = req.query.status as string;
     const limit = 10;
@@ -14,8 +14,8 @@ export const getProducts = async (req: AuthRequest, res: Response) => {
     const whereClause: any = {
       department: {
         storeId: storeId,
-        id: role !== "ADMIN" ? (departmentId ?? undefined) : undefined,
-      }
+        id: role !== "ADMIN" ? departmentId ?? undefined : undefined,
+      },
     };
 
     if (status) {
@@ -33,35 +33,40 @@ export const getProducts = async (req: AuthRequest, res: Response) => {
         skip: skip,
         take: limit,
       }),
-      prisma.product.count({ where: whereClause })
+      prisma.product.count({ where: whereClause }),
     ]);
 
     res.json({
       items: products,
       currentPage: page,
       totalPages: Math.ceil(totalItems / limit),
-      totalItems
+      totalItems,
     });
-
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch products" });
   }
 };
-
 
 export const createProduct = async (req: AuthRequest, res: Response) => {
   try {
     const { name, productCode, quantity, departmentId } = req.body;
 
     const existing = await prisma.product.findUnique({
-      where: { productCode_departmentId: { productCode, departmentId } }
+      where: { productCode_departmentId: { productCode, departmentId } },
     });
 
     if (existing) {
-      return res.status(400).json({ message: "Product code already exists in this department" });
+      return res
+        .status(400)
+        .json({ message: "Product code already exists in this department" });
     }
 
-    const status = quantity === 0 ? "OUT_OF_STOCK" : quantity < 10 ? "LOW_STOCK" : "IN_STOCK";
+    const status =
+      quantity === 0
+        ? "OUT_OF_STOCK"
+        : quantity < 10
+        ? "LOW_STOCK"
+        : "IN_STOCK";
 
     const product = await prisma.product.create({
       data: {
@@ -75,12 +80,10 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
     });
 
     return res.status(201).json(product);
-  } 
-  catch (err) {
+  } catch (err) {
     return res.status(500).json({ message: "Failed to create product" });
   }
 };
-
 
 export const updateProduct = async (req: AuthRequest, res: Response) => {
   try {
@@ -96,7 +99,12 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
       if (departmentId) updateData.departmentId = departmentId;
     }
 
-    updateData.status = quantity === 0 ? "OUT_OF_STOCK" : quantity < 10 ? "LOW_STOCK" : "IN_STOCK";
+    updateData.status =
+      quantity === 0
+        ? "OUT_OF_STOCK"
+        : quantity < 10
+        ? "LOW_STOCK"
+        : "IN_STOCK";
 
     const product = await prisma.product.update({
       where: { id },
@@ -104,12 +112,10 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
     });
 
     res.json(product);
-  } 
-  catch (error) {
+  } catch (error) {
     res.status(500).json({ message: "Failed to update product" });
   }
 };
-
 
 export const deleteProduct = async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
@@ -120,20 +126,20 @@ export const deleteProduct = async (req: AuthRequest, res: Response) => {
       where: {
         id: id,
         department: {
-          storeId: storeId
-        }
-      }
+          storeId: storeId,
+        },
+      },
     });
 
     if (deleteResult.count === 0) {
-      return res.status(404).json({ 
-        message: "Product not found or you do not have permission to delete it from this store." 
+      return res.status(404).json({
+        message:
+          "Product not found or you do not have permission to delete it from this store.",
       });
     }
 
     return res.status(200).json({ message: "Product deleted successfully" });
-  } 
-  catch (error) {
+  } catch (error) {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
